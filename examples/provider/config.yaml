@@ -12,3 +12,24 @@ metadata:
   name: default
 spec:
   url: "http://clusterbook.clusterbook-system:8080"
+---
+# Example: skip TLS verification for self-signed certificates
+apiVersion: clusterbook.stuttgart-things.com/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: insecure
+spec:
+  url: "https://clusterbook.example.com"
+  insecureSkipTLSVerify: true
+---
+# Example: trust a custom CA certificate
+apiVersion: clusterbook.stuttgart-things.com/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: custom-ca
+spec:
+  url: "https://clusterbook.example.com"
+  customCA: |
+    -----BEGIN CERTIFICATE-----
+    <PEM-encoded CA certificate>
+    -----END CERTIFICATE-----

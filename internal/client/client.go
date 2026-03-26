@@ -19,6 +19,8 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,30 +35,62 @@ type Client struct {
 	httpClient *http.Client
 }
 
+// TLSOptions holds TLS configuration for the HTTP client.
+type TLSOptions struct {
+	// InsecureSkipVerify disables TLS certificate verification.
+	InsecureSkipVerify bool
+	// CustomCA is a PEM-encoded CA certificate to add to the trust pool.
+	CustomCA string
+}
+
 // NewClient creates a new clusterbook API client.
-func NewClient(baseURL string) *Client {
+func NewClient(baseURL string, opts *TLSOptions) (*Client, error) {
+	transport := &http.Transport{}
+
+	if opts != nil && (opts.InsecureSkipVerify || opts.CustomCA != "") {
+		tlsConfig := &tls.Config{}
+
+		if opts.InsecureSkipVerify {
+			tlsConfig.InsecureSkipVerify = true //nolint:gosec // user-configured for self-signed certs
+		}
+
+		if opts.CustomCA != "" {
+			pool, err := x509.SystemCertPool()
+			if err != nil {
+				pool = x509.NewCertPool()
+			}
+			if !pool.AppendCertsFromPEM([]byte(opts.CustomCA)) {
+				return nil, fmt.Errorf("cannot parse custom CA certificate")
+			}
+			tlsConfig.RootCAs = pool
+		}
+
+		transport.TLSClientConfig = tlsConfig
+	}
+
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
-	}
+	}, nil
 }
 
 // IPInfo represents an IP address entry returned by the clusterbook API.
 type IPInfo struct {
-	IP          string `json:"ip"`
-	Network     string `json:"network"`
-	ClusterName string `json:"clusterName"`
-	Status      string `json:"status"`
+	IP      string `json:"IP"`
+	Digit   string `json:"Digit"`
+	Status  string `json:"Status"`
+	Cluster string `json:"Cluster"`
 }
 
 // ReserveRequest is the request body for reserving IPs.
 type ReserveRequest struct {
-	ClusterName string `json:"clusterName"`
-	Count       int    `json:"count,omitempty"`
-	IP          string `json:"ip,omitempty"`
-	CreateDNS   bool   `json:"createDNS,omitempty"`
+	Cluster   string `json:"cluster"`
+	Count     int    `json:"count,omitempty"`
+	IP        string `json:"ip,omitempty"`
+	CreateDNS bool   `json:"createDNS,omitempty"`
 }
 
 // ReserveResponse is the response from the reserve/assign endpoint.
@@ -65,9 +99,9 @@ type ReserveResponse struct {
 	Status string   `json:"status"`
 }
 
-// ReleaseRequest is the request body for releasing IPs.
+// ReleaseRequest is the request body for releasing an IP.
 type ReleaseRequest struct {
-	ClusterName string `json:"clusterName"`
+	IP string `json:"ip"`
 }
 
 // ReserveIPs reserves IPs from the given network pool.
