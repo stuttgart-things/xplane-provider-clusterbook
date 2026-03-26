@@ -1,23 +1,26 @@
-apiVersion: sample.template.crossplane.io/v1alpha1
-kind: MyType
+apiVersion: ipreservation.clusterbook.stuttgart-things.com/v1alpha1
+kind: IPReservation
 metadata:
-  name: example
-  namespace: default
+  name: my-cluster-ip
 spec:
   forProvider:
-    configurableField: test
+    networkKey: "10.31.103"
+    clusterName: "my-cluster"
+    count: 1
+    createDNS: true
   providerConfigRef:
-    name: example
-    kind: ProviderConfig
+    name: default
 ---
-apiVersion: sample.template.crossplane.io/v1alpha1
-kind: MyType
+apiVersion: ipreservation.clusterbook.stuttgart-things.com/v1alpha1
+kind: IPReservation
 metadata:
-  name: cluster-example
-  namespace: default
+  name: my-cluster-ip-explicit
 spec:
   forProvider:
-    configurableField: test
+    networkKey: "10.31.103"
+    clusterName: "my-cluster"
+    ip: "10.31.103.50"
+    createDNS: false
   providerConfigRef:
-    name: example
+    name: default
     kind: ClusterProviderConfig

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Crossplane Authors.
+Copyright 2025 The Crossplane Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,16 +20,16 @@ import (
 	"github.com/crossplane/crossplane-runtime/v2/pkg/controller"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/crossplane/provider-template/internal/controller/config"
-	"github.com/crossplane/provider-template/internal/controller/mytype"
+	"github.com/stuttgart-things/provider-clusterbook/internal/controller/config"
+	"github.com/stuttgart-things/provider-clusterbook/internal/controller/ipreservation"
 )
 
-// SetupGated creates all Template controllers with safe-start support and adds them to
+// SetupGated creates all Clusterbook controllers with safe-start support and adds them to
 // the supplied manager.
 func SetupGated(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
-		mytype.SetupGated,
+		ipreservation.SetupGated,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err

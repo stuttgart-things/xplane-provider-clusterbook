@@ -4,19 +4,19 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
-  name: mytypes.sample.template.crossplane.io
+  name: ipreservations.ipreservation.clusterbook.stuttgart-things.com
 spec:
-  group: sample.template.crossplane.io
+  group: ipreservation.clusterbook.stuttgart-things.com
   names:
     categories:
     - crossplane
     - managed
-    - template
-    kind: MyType
-    listKind: MyTypeList
-    plural: mytypes
-    singular: mytype
-  scope: Namespaced
+    - clusterbook
+    kind: IPReservation
+    listKind: IPReservationList
+    plural: ipreservations
+    singular: ipreservation
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
@@ -25,8 +25,11 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: EXTERNAL-NAME
+    - jsonPath: .spec.forProvider.networkKey
+      name: NETWORK
+      type: string
+    - jsonPath: .spec.forProvider.clusterName
+      name: CLUSTER
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -34,7 +37,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A MyType is an example API type.
+        description: An IPReservation reserves IP addresses from a clusterbook network
+          pool.
         properties:
           apiVersion:
             description: |-
@@ -54,15 +58,33 @@ spec:
           metadata:
             type: object
           spec:
-            description: A MyTypeSpec defines the desired state of a MyType.
+            description: An IPReservationSpec defines the desired state of an IPReservation.
             properties:
               forProvider:
-                description: MyTypeParameters are the configurable fields of a MyType.
+                description: IPReservationParameters are the configurable fields of
+                  an IPReservation.
                 properties:
-                  configurableField:
+                  clusterName:
+                    description: ClusterName is the cluster to assign IPs to.
+                    type: string
+                  count:
+                    default: 1
+                    description: Count is the number of IPs to reserve. Defaults to
+                      1.
+                    type: integer
+                  createDNS:
+                    description: CreateDNS optionally creates a PDNS wildcard record
+                      for the reserved IP.
+                    type: boolean
+                  ip:
+                    description: IP is an optional explicit IP address (skip auto-reserve).
+                    type: string
+                  networkKey:
+                    description: NetworkKey is the network pool key (e.g. "10.31.103").
                     type: string
                 required:
-                - configurableField
+                - clusterName
+                - networkKey
                 type: object
               managementPolicies:
                 default:
@@ -123,17 +145,21 @@ spec:
             - forProvider
             type: object
           status:
-            description: A MyTypeStatus represents the observed state of a MyType.
+            description: An IPReservationStatus represents the observed state of an
+              IPReservation.
             properties:
               atProvider:
-                description: MyTypeObservation are the observable fields of a MyType.
+                description: IPReservationObservation are the observable fields of
+                  an IPReservation.
                 properties:
-                  configurableField:
+                  ipAddresses:
+                    description: IPAddresses is the list of assigned IP addresses.
+                    items:
+                      type: string
+                    type: array
+                  status:
+                    description: Status is the assignment status (e.g. ASSIGNED, ASSIGNED:DNS).
                     type: string
-                  observableField:
-                    type: string
-                required:
-                - configurableField
                 type: object
               conditions:
                 description: Conditions of the resource.
