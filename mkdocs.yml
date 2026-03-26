@@ -1,0 +1,8 @@
+site_name: provider-clusterbook
+site_description: Crossplane Provider that manages IP reservations and PDNS records via clusterbook REST API
+nav:
+  - Home: index.md
+  - Deployment: deployment.md
+  - CI/CD: cicd.md
+plugins:
+  - techdocs-core
