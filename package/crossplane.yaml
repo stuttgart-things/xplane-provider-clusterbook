@@ -1,13 +1,13 @@
 apiVersion: meta.pkg.crossplane.io/v1alpha1
 kind: Provider
 metadata:
-  name: provider-template
+  name: provider-clusterbook
   annotations:
     meta.crossplane.io/maintainer: Crossplane Maintainers <info@crossplane.io>
-    meta.crossplane.io/source: github.com/crossplane/provider-template
+    meta.crossplane.io/source: github.com/stuttgart-things/provider-clusterbook
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
-      A template that can be used to create Crossplane providers.
+      Manages IP reservations and optional PowerDNS records via clusterbook REST API.
 spec:
   capabilities:
     - safe-start
