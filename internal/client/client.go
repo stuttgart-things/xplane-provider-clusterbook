@@ -48,7 +48,7 @@ func NewClient(baseURL string, opts *TLSOptions) (*Client, error) {
 	transport := &http.Transport{}
 
 	if opts != nil && (opts.InsecureSkipVerify || opts.CustomCA != "") {
-		tlsConfig := &tls.Config{}
+		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12} //nolint:gosec // MinVersion is set
 
 		if opts.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true //nolint:gosec // user-configured for self-signed certs
