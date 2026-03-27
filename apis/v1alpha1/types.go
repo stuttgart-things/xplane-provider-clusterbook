@@ -31,6 +31,17 @@ type ProviderConfigStatus struct {
 type ProviderConfigSpec struct {
 	// URL of the clusterbook REST API.
 	URL string `json:"url"`
+
+	// InsecureSkipTLSVerify disables TLS certificate verification.
+	// Use this for endpoints with self-signed or untrusted certificates.
+	// +optional
+	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
+
+	// CustomCA is a PEM-encoded CA certificate to trust when connecting
+	// to the clusterbook API. If set, this CA is added to the system
+	// certificate pool.
+	// +optional
+	CustomCA string `json:"customCA,omitempty"`
 }
 
 // +kubebuilder:object:root=true

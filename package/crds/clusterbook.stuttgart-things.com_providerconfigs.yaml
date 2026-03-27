@@ -51,6 +51,17 @@ spec:
           spec:
             description: ProviderConfigSpec defines the desired state of a ProviderConfig.
             properties:
+              customCA:
+                description: |-
+                  CustomCA is a PEM-encoded CA certificate to trust when connecting
+                  to the clusterbook API. If set, this CA is added to the system
+                  certificate pool.
+                type: string
+              insecureSkipTLSVerify:
+                description: |-
+                  InsecureSkipTLSVerify disables TLS certificate verification.
+                  Use this for endpoints with self-signed or untrusted certificates.
+                type: boolean
               url:
                 description: URL of the clusterbook REST API.
                 type: string

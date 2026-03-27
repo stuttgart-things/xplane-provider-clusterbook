@@ -123,9 +123,17 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, err
 	}
 
+	cbClient, err := clusterbookclient.NewClient(spec.URL, &clusterbookclient.TLSOptions{
+		InsecureSkipVerify: spec.InsecureSkipTLSVerify,
+		CustomCA:           spec.CustomCA,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create clusterbook client")
+	}
+
 	return &external{
 		kube:   c.kube,
-		client: clusterbookclient.NewClient(spec.URL),
+		client: cbClient,
 	}, nil
 }
 
@@ -173,7 +181,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	var assignedIPs []string
 	var status string
 	for _, ip := range ips {
-		if ip.ClusterName == cr.Spec.ForProvider.ClusterName {
+		if ip.Cluster == cr.Spec.ForProvider.ClusterName {
 			assignedIPs = append(assignedIPs, ip.IP)
 			status = ip.Status
 		}
@@ -205,10 +213,10 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	req := clusterbookclient.ReserveRequest{
-		ClusterName: cr.Spec.ForProvider.ClusterName,
-		Count:       cr.Spec.ForProvider.Count,
-		IP:          cr.Spec.ForProvider.IP,
-		CreateDNS:   cr.Spec.ForProvider.CreateDNS,
+		Cluster:   cr.Spec.ForProvider.ClusterName,
+		Count:     cr.Spec.ForProvider.Count,
+		IP:        cr.Spec.ForProvider.IP,
+		CreateDNS: cr.Spec.ForProvider.CreateDNS,
 	}
 
 	resp, err := e.client.ReserveIPs(ctx, cr.Spec.ForProvider.NetworkKey, req)
@@ -233,8 +241,8 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	// If explicit IP is set, update it
 	if cr.Spec.ForProvider.IP != "" {
 		req := clusterbookclient.ReserveRequest{
-			ClusterName: cr.Spec.ForProvider.ClusterName,
-			CreateDNS:   cr.Spec.ForProvider.CreateDNS,
+			Cluster:   cr.Spec.ForProvider.ClusterName,
+			CreateDNS: cr.Spec.ForProvider.CreateDNS,
 		}
 		if err := e.client.UpdateIP(ctx, cr.Spec.ForProvider.NetworkKey, cr.Spec.ForProvider.IP, req); err != nil {
 			return managed.ExternalUpdate{}, errors.Wrap(err, errUpdateIP)
@@ -250,12 +258,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalDelete{}, errors.New(errNotIPReservation)
 	}
 
-	req := clusterbookclient.ReleaseRequest{
-		ClusterName: cr.Spec.ForProvider.ClusterName,
-	}
-
-	if err := e.client.ReleaseIPs(ctx, cr.Spec.ForProvider.NetworkKey, req); err != nil {
-		return managed.ExternalDelete{}, errors.Wrap(err, errReleaseIPs)
+	for _, ip := range cr.Status.AtProvider.IPAddresses {
+		req := clusterbookclient.ReleaseRequest{IP: ip}
+		if err := e.client.ReleaseIPs(ctx, cr.Spec.ForProvider.NetworkKey, req); err != nil {
+			return managed.ExternalDelete{}, errors.Wrap(err, errReleaseIPs)
+		}
 	}
 
 	return managed.ExternalDelete{}, nil
