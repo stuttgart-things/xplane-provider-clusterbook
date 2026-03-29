@@ -18,6 +18,7 @@ package ipreservation
 
 import (
 	"context"
+	"strings"
 
 	xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/controller"
@@ -198,7 +199,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	cr.SetConditions(xpv2.Available())
 
 	// Check if the reservation matches desired state
-	upToDate := len(assignedIPs) == cr.Spec.ForProvider.Count
+	countMatch := len(assignedIPs) == cr.Spec.ForProvider.Count
+	dnsMatch := !cr.Spec.ForProvider.CreateDNS || strings.Contains(status, "DNS")
+	upToDate := countMatch && dnsMatch
 
 	return managed.ExternalObservation{
 		ResourceExists:   true,
