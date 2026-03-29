@@ -238,13 +238,18 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotIPReservation)
 	}
 
-	// If explicit IP is set, update it
-	if cr.Spec.ForProvider.IP != "" {
+	// Determine IP to update: explicit spec IP or first assigned IP from status
+	ip := cr.Spec.ForProvider.IP
+	if ip == "" && len(cr.Status.AtProvider.IPAddresses) > 0 {
+		ip = cr.Status.AtProvider.IPAddresses[0]
+	}
+
+	if ip != "" {
 		req := clusterbookclient.ReserveRequest{
 			Cluster:   cr.Spec.ForProvider.ClusterName,
 			CreateDNS: cr.Spec.ForProvider.CreateDNS,
 		}
-		if err := e.client.UpdateIP(ctx, cr.Spec.ForProvider.NetworkKey, cr.Spec.ForProvider.IP, req); err != nil {
+		if err := e.client.UpdateIP(ctx, cr.Spec.ForProvider.NetworkKey, ip, req); err != nil {
 			return managed.ExternalUpdate{}, errors.Wrap(err, errUpdateIP)
 		}
 	}
