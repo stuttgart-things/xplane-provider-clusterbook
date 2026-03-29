@@ -1,93 +1,203 @@
 # provider-clusterbook
 
-(ansible-venv) sthings@dev-test1:~/projects$ git clone https://github.com/stuttgart-things/xplane-provider-clusterbook.git
-Cloning into 'xplane-provider-clusterbook'...
-remote: Enumerating objects: 97, done.
-remote: Counting objects: 100% (97/97), done.
-remote: Compressing objects: 100% (77/77), done.
-remote: Total 97 (delta 16), reused 79 (delta 10), pack-reused 0 (from 0)
-Receiving objects: 100% (97/97), 63.09 KiB | 3.32 MiB/s, done.
-Resolving deltas: 100% (16/16), done.
-(ansible-venv) sthings@dev-test1:~/projects$ cd xplane-provider-clusterbook/
-(ansible-venv) sthings@dev-test1:~/projects/xplane-provider-clusterbook$ make submodules
-Submodule 'build' (https://github.com/crossplane/build) registered for path 'build'
-Cloning into '/home/sthings/projects/xplane-provider-clusterbook/build'...
-Submodule path 'build': checked out 'b964dbe0ff0856a762f1a06fe554c647d22af7f0'
-(ansible-venv) sthings@dev-test1:~/projects/xplane-provider-clusterbook$ export provider_name=Clusterbook
-(ansible-venv) sthings@dev-test1:~/projects/xplane-provider-clusterbook$ make provider.prepare provider=${provider_name}
-rm 'apis/sample/sample.go'
-rm 'apis/sample/v1alpha1/doc.go'
-rm 'apis/sample/v1alpha1/groupversion_info.go'
-rm 'apis/sample/v1alpha1/mytype_types.go'
-rm 'apis/sample/v1alpha1/zz_generated.deepcopy.go'
-rm 'apis/sample/v1alpha1/zz_generated.managed.go'
-rm 'apis/sample/v1alpha1/zz_generated.managedlist.go'
-rm 'internal/controller/mytype/mytype.go'
-rm 'internal/controller/mytype/mytype_test.go'
-Removing Makefile.bak
-Removing PROVIDER_CHECKLIST.md.bak
-Removing README.md.bak
-Removing apis/template.go.bak
-Removing apis/v1alpha1/doc.go.bak
-Removing apis/v1alpha1/register.go.bak
-Removing apis/v1alpha1/types.go.bak
-Removing cluster/images/provider-template/Dockerfile.bak
-Removing cluster/local/integration_tests.sh.bak
-Removing cmd/provider/main.go.bak
-Removing examples/provider/config.yaml.bak
-Removing examples/sample/mytype.yaml.bak
-Removing go.mod.bak
-Removing internal/controller/config/config.go.bak
-Removing internal/controller/register.go.bak
-Removing package/crds/sample.template.crossplane.io_mytypes.yaml.bak
-Removing package/crds/template.crossplane.io_clusterproviderconfigs.yaml.bak
-Removing package/crds/template.crossplane.io_clusterproviderconfigusages.yaml.bak
-Removing package/crds/template.crossplane.io_providerconfigs.yaml.bak
-Removing package/crds/template.crossplane.io_providerconfigusages.yaml.bak
-Removing package/crossplane.yaml.bak
+`provider-clusterbook` is a [Crossplane](https://crossplane.io/) Provider that
+manages IP address reservations from a [clusterbook](https://github.com/stuttgart-things/clusterbook)
+REST API. It reserves IPs from network pools, optionally creates PowerDNS
+wildcard DNS records, and exposes the assigned addresses in status.
 
+## Features
 
+- **IP reservation** — reserve one or more IPs from a clusterbook network pool
+- **Explicit or auto-assign** — optionally specify an exact IP, or let clusterbook auto-assign from the pool
+- **PowerDNS integration** — optionally create wildcard DNS records for reserved IPs via `createDNS`
+- **Drift detection** — observes the clusterbook API and reconciles on changes
+- **TLS support** — custom CA certificates and insecure skip-verify for self-signed endpoints
 
+## Custom Resource Types
 
+| Kind | Scope | Description |
+|------|-------|-------------|
+| `ProviderConfig` | Namespaced | Clusterbook API connection settings (namespaced) |
+| `ClusterProviderConfig` | Cluster | Clusterbook API connection settings (cluster-scoped) |
+| `IPReservation` | Cluster | Managed resource — reserves IPs from a network pool |
 
+## Quick Start
 
+### 1. Install the Provider
 
-
-
-`provider-clusterbook` is a minimal [Crossplane](https://crossplane.io/) Provider
-that is meant to be used as a clusterbook for implementing new Providers. It comes
-with the following features that are meant to be refactored:
-
-- A `ProviderConfig` type that only points to a credentials `Secret`.
-- A `MyType` resource type that serves as an example managed resource.
-- A managed resource controller that reconciles `MyType` objects and simply
-  prints their configuration in its `Observe` method.
-
-## Developing
-
-1. Use this repository as a clusterbook to create a new one.
-1. Run `make submodules` to initialize the "build" Make submodule we use for CI/CD.
-1. Rename the provider by running the following command:
-```shell
-  export provider_name=MyProvider # Camel case, e.g. GitHub
-  make provider.prepare provider=${provider_name}
+```yaml
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-clusterbook
+spec:
+  package: ghcr.io/stuttgart-things/provider-clusterbook-xpkg:v3.1
 ```
-4. Add your new type by running the following command:
-```shell
-  export group=sample # lower case e.g. core, cache, database, storage, etc.
-  export type=MyType # Camel casee.g. Bucket, Database, CacheCluster, etc.
-  make provider.addtype provider=${provider_name} group=${group} kind=${type}
+
+### 2. Create a ClusterProviderConfig
+
+```yaml
+apiVersion: clusterbook.stuttgart-things.com/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  url: "http://clusterbook.clusterbook.svc.cluster.local:8080"
 ```
-5. Replace the *sample* group with your new group in apis/{provider}.go
-5. Replace the *mytype* type with your new type in internal/controller/{provider}.go
-5. Replace the default controller and ProviderConfig implementations with your own
-5. Register your new type into `SetupGated` function in `internal/controller/register.go`
-5. Run `make reviewable` to run code generation, linters, and tests.
-5. Run `make build` to build the provider.
 
-Refer to Crossplane's [CONTRIBUTING.md] file for more information on how the
-Crossplane community prefers to work. The [Provider Development][provider-dev]
-guide may also be of use.
+For TLS endpoints with a custom CA:
 
-[CONTRIBUTING.md]: https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md
-[provider-dev]: https://github.com/crossplane/crossplane/blob/master/contributing/guide-provider-development.md
+```yaml
+apiVersion: clusterbook.stuttgart-things.com/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  url: "https://clusterbook.example.com"
+  customCA: |
+    -----BEGIN CERTIFICATE-----
+    ...
+    -----END CERTIFICATE-----
+```
+
+For self-signed certificates (development only):
+
+```yaml
+apiVersion: clusterbook.stuttgart-things.com/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  url: "https://clusterbook.example.com"
+  insecureSkipTLSVerify: true
+```
+
+### 3. Create an IPReservation
+
+Auto-assign an IP from a network pool:
+
+```yaml
+apiVersion: ipreservation.clusterbook.stuttgart-things.com/v1alpha1
+kind: IPReservation
+metadata:
+  name: my-cluster-ip
+spec:
+  forProvider:
+    networkKey: "10.31.103"
+    clusterName: my-cluster
+    count: 1
+  providerConfigRef:
+    name: default
+    kind: ClusterProviderConfig
+```
+
+Reserve a specific IP with DNS record:
+
+```yaml
+apiVersion: ipreservation.clusterbook.stuttgart-things.com/v1alpha1
+kind: IPReservation
+metadata:
+  name: my-cluster-ip
+spec:
+  forProvider:
+    networkKey: "10.31.103"
+    clusterName: my-cluster
+    ip: "10.31.103.42"
+    createDNS: true
+  providerConfigRef:
+    name: default
+    kind: ClusterProviderConfig
+```
+
+## Verify
+
+```shell
+$ kubectl get ipreservation
+NAME             READY   SYNCED   NETWORK     CLUSTER      AGE
+my-cluster-ip    True    True     10.31.103   my-cluster   5m
+
+$ kubectl get ipreservation my-cluster-ip -o jsonpath='{.status.atProvider}' | jq
+{
+  "ipAddresses": ["10.31.103.42"],
+  "status": "ASSIGNED:DNS"
+}
+```
+
+## IPReservation Fields
+
+### Spec (`forProvider`)
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `networkKey` | string | Yes | — | Network pool key (e.g. `10.31.103`) |
+| `clusterName` | string | Yes | — | Cluster name to assign IPs to |
+| `count` | integer | No | 1 | Number of IPs to reserve |
+| `ip` | string | No | — | Explicit IP (skips auto-assignment) |
+| `createDNS` | boolean | No | false | Create a PDNS wildcard DNS record |
+
+### Status (`atProvider`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ipAddresses` | []string | List of assigned IP addresses |
+| `status` | string | Assignment status (`ASSIGNED` or `ASSIGNED:DNS`) |
+
+## Building
+
+### Prerequisites
+
+- Go 1.23+
+- Docker
+- Make
+
+### Build the Provider
+
+```shell
+# Initialize the build submodule (first time only)
+make submodules
+
+# Generate CRDs, deepcopy, and run linters
+make reviewable
+
+# Build the provider binary and Docker image
+make build
+```
+
+### Running Tests
+
+```shell
+go test ./internal/... -v -count=1
+```
+
+## Project Structure
+
+```
+apis/
+  v1alpha1/                    # ProviderConfig, ClusterProviderConfig types
+  ipreservation/
+    v1alpha1/                  # IPReservation managed resource type
+internal/
+  client/                      # Clusterbook REST API client
+  controller/
+    config/                    # ProviderConfig controller
+    ipreservation/             # IPReservation reconciler
+    clusterbook.go             # Controller registration
+package/
+  crds/                        # Generated CRDs
+  crossplane.yaml              # Crossplane package metadata
+```
+
+## Provider Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--debug` / `-d` | `false` | Enable debug logging |
+| `--leader-election` / `-l` | `false` | Enable leader election for HA |
+| `--poll` | `1m` | How often to check each resource for drift |
+| `--sync` / `-s` | `1h` | Controller manager sync period |
+| `--max-reconcile-rate` | `10` | Max reconciliations per second |
+
+## Links
+
+- [Crossplane Provider Development Guide](https://github.com/crossplane/crossplane/blob/master/contributing/guide-provider-development.md)
+- [clusterbook](https://github.com/stuttgart-things/clusterbook)
