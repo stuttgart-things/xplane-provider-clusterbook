@@ -251,6 +251,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		req := clusterbookclient.ReserveRequest{
 			Cluster:   cr.Spec.ForProvider.ClusterName,
 			CreateDNS: cr.Spec.ForProvider.CreateDNS,
+			Status:    cr.Status.AtProvider.Status,
 		}
 		if err := e.client.UpdateIP(ctx, cr.Spec.ForProvider.NetworkKey, ip, req); err != nil {
 			return managed.ExternalUpdate{}, errors.Wrap(err, errUpdateIP)

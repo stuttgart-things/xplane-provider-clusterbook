@@ -91,6 +91,7 @@ type ReserveRequest struct {
 	Count     int    `json:"count,omitempty"`
 	IP        string `json:"ip,omitempty"`
 	CreateDNS bool   `json:"createDNS,omitempty"`
+	Status    string `json:"status,omitempty"`
 }
 
 // ReserveResponse is the response from the reserve/assign endpoint.
