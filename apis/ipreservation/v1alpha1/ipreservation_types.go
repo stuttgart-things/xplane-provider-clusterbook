@@ -56,6 +56,15 @@ type IPReservationObservation struct {
 	// Status is the assignment status (e.g. ASSIGNED, ASSIGNED:DNS).
 	// +optional
 	Status string `json:"status,omitempty"`
+
+	// FQDN is the wildcard DNS name (e.g. *.mycluster.example.com).
+	// Only set when createDNS is true and DNS is configured in clusterbook.
+	// +optional
+	FQDN string `json:"fqdn,omitempty"`
+
+	// Zone is the DNS zone (e.g. example.com).
+	// +optional
+	Zone string `json:"zone,omitempty"`
 }
 
 // An IPReservationSpec defines the desired state of an IPReservation.
