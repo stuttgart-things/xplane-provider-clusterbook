@@ -152,6 +152,11 @@ spec:
                 description: IPReservationObservation are the observable fields of
                   an IPReservation.
                 properties:
+                  fqdn:
+                    description: |-
+                      FQDN is the wildcard DNS name (e.g. *.mycluster.example.com).
+                      Only set when createDNS is true and DNS is configured in clusterbook.
+                    type: string
                   ipAddresses:
                     description: IPAddresses is the list of assigned IP addresses.
                     items:
@@ -159,6 +164,9 @@ spec:
                     type: array
                   status:
                     description: Status is the assignment status (e.g. ASSIGNED, ASSIGNED:DNS).
+                    type: string
+                  zone:
+                    description: Zone is the DNS zone (e.g. example.com).
                     type: string
                 type: object
               conditions:

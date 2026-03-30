@@ -192,9 +192,20 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{ResourceExists: false}, nil
 	}
 
+	// Fetch FQDN and zone from cluster info when DNS is active
+	var fqdn, zone string
+	if strings.Contains(status, "DNS") {
+		if info, err := e.client.GetClusterInfo(ctx, cr.Spec.ForProvider.ClusterName); err == nil {
+			fqdn = info.FQDN
+			zone = info.Zone
+		}
+	}
+
 	cr.Status.AtProvider = v1alpha1.IPReservationObservation{
 		IPAddresses: assignedIPs,
 		Status:      status,
+		FQDN:        fqdn,
+		Zone:        zone,
 	}
 	cr.SetConditions(xpv2.Available())
 

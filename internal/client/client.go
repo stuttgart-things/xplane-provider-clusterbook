@@ -83,6 +83,14 @@ type IPInfo struct {
 	Digit   string `json:"Digit"`
 	Status  string `json:"Status"`
 	Cluster string `json:"Cluster"`
+	FQDN    string `json:"FQDN,omitempty"`
+}
+
+// ClusterInfo represents the cluster info returned by /api/v1/clusters/{name}.
+type ClusterInfo struct {
+	Cluster string `json:"cluster"`
+	FQDN    string `json:"fqdn,omitempty"`
+	Zone    string `json:"zone,omitempty"`
 }
 
 // ReserveRequest is the request body for reserving IPs.
@@ -161,6 +169,32 @@ func (c *Client) GetIPs(ctx context.Context, networkKey string) ([]IPInfo, error
 		return nil, fmt.Errorf("cannot decode IPs response: %w", err)
 	}
 	return ips, nil
+}
+
+// GetClusterInfo returns the cluster info including FQDN and zone.
+func (c *Client) GetClusterInfo(ctx context.Context, clusterName string) (*ClusterInfo, error) {
+	url := fmt.Sprintf("%s/api/v1/clusters/%s", c.baseURL, clusterName)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create get cluster info request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("get cluster info request failed: %w", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get cluster info returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var info ClusterInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, fmt.Errorf("cannot decode cluster info response: %w", err)
+	}
+	return &info, nil
 }
 
 // ReleaseIPs releases IPs assigned to a cluster in the given network.
